@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="site.petrumugurel.connect4.MainActivity"
+    android:background="@color/backgroundColor"
+    tools:ignore="RtlHardcoded">
+
+    <TextView
+        android:id="@+id/mainA_RL_TV_scoreTable"
+        android:layout_width="wrap_content"
+        android:layout_height="100dp"
+        android:text="Score:"
+        android:textSize="24sp"
+        android:layout_gravity="center|right"
+        android:gravity="center|right"
+        android:textStyle="bold"
+        android:layout_marginEnd="30dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="30dp"
+        tools:ignore="HardcodedText"/>
+
+    <!-- This will hold the indicators for who's score is shown. -->
+    <LinearLayout
+        android:id="@+id/mainA_RL_LL_players"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_toRightOf="@id/mainA_RL_TV_scoreTable"
+        android:layout_marginTop="40dp"
+        tools:ignore="HardcodedText">
+
+        <EditText
+            android:id="@+id/mainA_RL_TV_playerName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="You"
+            android:textAlignment="center"
+            android:inputType="textPersonName|textAutoComplete"
+            android:textStyle="italic"
+            android:layout_weight="2"/>
+        <EditText
+            android:id="@+id/mainA_RL_TV_AIName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="AI"
+            android:layout_weight="2"
+            android:textStyle="italic"
+            android:textAlignment="center"
+            android:inputType="textPersonName|textAutoComplete"/>
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+        </View>
+    </LinearLayout>
+
+    <!-- This will show current scores for player/AI -->
+    <LinearLayout
+        android:id="@+id/mainA_RL_LL_scores"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_below="@id/mainA_RL_LL_players"
+        android:layout_alignStart="@id/mainA_RL_LL_players"
+        tools:ignore="HardcodedText">
+
+        <TextView
+            android:id="@+id/mainA_RL_TV_playerScore"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            android:layout_weight="2"/>
+        <TextView
+            android:id="@+id/mainA_RL_TV_AIScore"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:layout_weight="2"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textAlignment="center"/>
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+        </View>
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/mainA_RL_LL_scores"
+        android:layout_marginTop="50dp"
+        tools:ignore="HardcodedText">
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/c4board_diffused"
+            android:scaleType="centerInside"
+            android:contentDescription="board_image"/>
+
+        <GridLayout
+            android:id="@+id/mainA_RL_GL_grid"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:columnCount="4"
+            android:rowCount="4"
+            android:layout_marginTop="54dp"
+            android:layout_marginLeft="33dp">
+
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece0x0"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="0"
+                android:layout_column="0"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece0x1"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="0"
+                android:layout_column="1"
+                android:layout_marginLeft="9.6dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece0x2"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="0"
+                android:layout_column="2"
+                android:layout_marginLeft="9.6dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece0x3"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="0"
+                android:layout_column="3"
+                android:layout_marginLeft="9.6dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece1x0"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="1"
+                android:layout_column="0"
+                android:layout_marginTop="5.2dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece1x1"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="1"
+                android:layout_column="1"
+                android:layout_marginTop="5.2dp"
+                android:layout_marginLeft="9.6dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece1x2"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="1"
+                android:layout_column="2"
+                android:layout_marginTop="5.2dp"
+                android:layout_marginLeft="9.6dp"
+                tools:ignore="ContentDescription"
+                android:onClick="dropIn"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece1x3"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="1"
+                android:layout_column="3"
+                android:layout_marginTop="5dp"
+                android:layout_marginLeft="9.6dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece2x0"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="2"
+                android:layout_column="0"
+                android:layout_marginTop="5.4dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece2x1"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="2"
+                android:layout_column="1"
+                android:layout_marginTop="5.4dp"
+                android:layout_marginLeft="9.6dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece2x2"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="2"
+                android:layout_column="2"
+                android:layout_marginTop="5.4dp"
+                android:layout_marginLeft="9.6dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece2x3"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="2"
+                android:layout_column="3"
+                android:layout_marginTop="5.4dp"
+                android:layout_marginLeft="9.6dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece3x0"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="3"
+                android:layout_column="0"
+                android:layout_marginTop="5.4dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece3x1"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="3"
+                android:layout_column="1"
+                android:layout_marginTop="5.4dp"
+                android:layout_marginLeft="9.6dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece3x2"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="3"
+                android:layout_column="2"
+                android:layout_marginTop="5.4dp"
+                android:layout_marginLeft="9.6dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+
+            <ImageView
+                android:id="@+id/mainA_RL_FR_GR_IV_piece3x3"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:layout_row="3"
+                android:layout_column="3"
+                android:layout_marginTop="5.4dp"
+                android:layout_marginLeft="9.6dp"
+                android:src="@drawable/red"
+                tools:ignore="ContentDescription"/>
+        </GridLayout>
+
+    </FrameLayout>
+
+</RelativeLayout>

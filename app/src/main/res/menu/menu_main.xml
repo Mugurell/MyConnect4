@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:title="New Game"
+        app:showAsAction="always"
+        android:orderInCategory="1"/>
+
+    <item
+        android:title="Reset Scores"
+        app:showAsAction="never"
+        android:orderInCategory="101" />
+    <item
+        android:title="Change Names"
+        app:showAsAction="never"
+        android:orderInCategory="102" />
+
+
+    <item
+        android:id="@+id/mainM_I_settings"
+        android:title="Settings"
+        android:enabled="false"
+        app:showAsAction="never"
+        android:orderInCategory="2001" />
+</menu>
