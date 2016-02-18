@@ -1,5 +1,23 @@
 package site.petrumugurel.connect4;
 
+import android.view.View;
+
+import java.util.Random;
+
+
+// TODO: 18-Feb-16 MAJOR REWORK
+// To let the disk fall into the last free space we I'll use an array similar to mDisksOnBopard
+// array - lets call it mPositionsOnBoard which will hold a reference to each imageView on the
+// board.
+// Already find the lowest free space in a column, just need to call that imageView to animate
+// etc, and that will be the last of it.
+
+
+
+
+
+
+
 /**
  * <p>A basic board of connect 4.</p>
  * <p>Makes us of the singleton pattern.<br>Handles everything about the board.<br>Can easily adapt to any reasonable board size and number of required disks in a line to
@@ -17,20 +35,30 @@ public class Board {
         return INSTANCE;
     }
 
-    public static final  int PLAYER_DISK      = 0x01;  // the color of the player's disks
-    public static final  int AI_DISK          = 0x10;  // the color of the AI's disks
-    private static final int IS_FREE          = 0x00;
-    private static final int MIN_ROWS         = 4;
-    private static final int MAX_ROWS         = 10;
-    private static final int MIN_COLUMNS      = 4;
-    private static final int MAX_COLUMNS      = 10;
-    private static final int MIN_DISKS_TO_WIN = 3;
+    public enum Players {PLAYER, AI}
+    
+    /**
+     * The ImageView representing the playing disk.
+     * <br>Allows to set various properties, useful for animation.
+     */
+    public static View disk;
+    
+    public static final  int     PLAYER_DISK      = 0x01;  // the color of the player's disks
+    public static final  int     AI_DISK          = 0x10;  // the color of the AI's disks
+    private static final int     IS_FREE          = 0x00;
+    private static final int     MIN_ROWS         = 4;
+    private static final int     MAX_ROWS         = 10;
+    private static final int     MIN_COLUMNS      = 4;
+    private static final int     MAX_COLUMNS      = 10;
+    private static final int     MIN_DISKS_TO_WIN = 3;
+    private static       boolean mHaveWinner      = false;
+    private              boolean mIsDraw          = false;
 
     // Following are to be inputted by the user
     private int mNumberOfRows;
     private int mNumberOfColumns;
     private int mDisksNeededForWin;
-    private int mMovesNumber;   // Todo Dont forget to increment this for every move
+    private int mMovesNumber;   // Todo Don't forget to increment this for every move
 
     private int[][] mDisksOnBoard;  // keep the position of disks on the board
 
@@ -68,8 +96,8 @@ public class Board {
             throw new IllegalArgumentException("More disks needed to win than spaces on the board");
         }
 
-        mNumberOfRows = rows - 1;   // -1 to account for the array starting at 0
-        mNumberOfColumns = columns - 1;
+        mNumberOfRows = rows;
+        mNumberOfColumns = columns;
         mDisksNeededForWin = disksNeededForWin;
         mMovesNumber = 0;
 
@@ -81,8 +109,20 @@ public class Board {
         }
     }
 
+    /**
+     * <p>If all possible moves were made - all positions are full of disks // todo draw</p>
+     * <p>Else will traverse every position to check if there are {@link Board#mDisksNeededForWin}
+     * of the same colour in a horizontal, vertical or diagonal(any) line.</p>
+     */
+    // // TODO: 18-Feb-16 Needs refactoring badly
     public void checkForWinner() {
-        if (mMovesNumber >= 7) {
+        if (mMovesNumber == mNumberOfRows * mNumberOfColumns) {
+            mIsDraw = true;
+            return;
+        }
+
+        // no point in checking if there are not enough moves made
+        else if (mMovesNumber >= (mDisksNeededForWin * 2) - 1) {
             boolean playerWon = true;
             boolean AIWon = true;
             int noOfRedDisks;
@@ -109,7 +149,8 @@ public class Board {
                         }
                         if (noOfRedDisks == mDisksNeededForWin) {
                             if (noOfRedDisks == mDisksNeededForWin) {
-                                // TODO: 17-Feb-16 do something when player won
+                                mHaveWinner = true;
+                                return;
                             }
                         }
                     }
@@ -126,7 +167,8 @@ public class Board {
                             }
                         }
                         if (noOfWhiteDisks == mDisksNeededForWin) {
-                            // TODO: 17-Feb-16 do something when player won
+                            mHaveWinner = true;
+                            return;
                         }
                     }   // check for AI disks
                 }   // columns iteration
@@ -151,7 +193,8 @@ public class Board {
                         }
                         if (noOfRedDisks == mDisksNeededForWin) {
                             if (noOfRedDisks == mDisksNeededForWin) {
-                                // TODO: 17-Feb-16 do something when player won
+                                mHaveWinner = true;
+                                return;
                             }
                         }
                     }
@@ -168,7 +211,8 @@ public class Board {
                             }
                         }
                         if (noOfWhiteDisks == mDisksNeededForWin) {
-                            // TODO: 17-Feb-16 do something when player won
+                            mHaveWinner = true;
+                            return;
                         }
                     }   // check for AI disks
                 }   // rows iteration
@@ -191,7 +235,8 @@ public class Board {
                         }
                     }
                     if (noOfRedDisks == mDisksNeededForWin) {
-                        // TODO: 17-Feb-16 do something when player won
+                        mHaveWinner = true;
+                        return;
                     }
                 }
                 else if (mDisksOnBoard[y][x] == AI_DISK) {
@@ -207,11 +252,93 @@ public class Board {
                         }
                     }
                     if (noOfWhiteDisks == mDisksNeededForWin) {
-                        // TODO: 17-Feb-16 do something when player won
+                        mHaveWinner = true;
+                        return;
                     }
                 }   //  check for AI disks
             }   //  big loop that checks the diagonals
         } //  if (mMovesNumber >= 7)
     }   // method end
+
+    /**
+     * Try to store a new disk on behalf of player at the indicated column.
+     * @param columnToInsertInto column into which to store a new disk, into the lowest free row.
+     * @return {@code true} if a new disk was inserted at the indicated column.<br>
+     *         {@code false} if there are no free spaces in the column. Must select another.
+     */
+    public boolean makePlayerMove(int columnToInsertInto) {
+        return storeNewDisk(Players.PLAYER, columnToInsertInto);
+    }
+
+    /**
+     * A simple method which will insert a new disk on behalf of the AI into a random column.
+     * @return
+     */
+    private boolean makeAIMove() {
+        if (!mHaveWinner) {
+            Random r = new Random();
+            int columnToInsertInto = r.nextInt(mNumberOfColumns);
+            storeNewDisk(Players.AI, columnToInsertInto);
+        }
+
+        return true;
+    }
+
+    /**
+     * This method will actually insert a new disk in the indicated column if there's available
+     * space.
+     * <p>If the move is made on behalf of the AI and the indicated column is already full it
+     * will store a new disk into the next available column, starting from 0 if last is full.</p>
+     * @param player on behalf of whom this move is made.
+     * @param columnToInsertInto where to insert a new disk.
+     * @return {@code true} - if a new disk was inserted at the indicated column.<br>
+     *         {@code false} - if there are no free spaces in the column. Must select another.
+     */
+    private boolean storeNewDisk(Players player, int columnToInsertInto) {
+        if (mMovesNumber == mNumberOfRows * mNumberOfColumns) {
+            return false;
+        }
+
+        for (int y = 0; y < mNumberOfRows; y++) {
+            if (mDisksOnBoard[y][columnToInsertInto] == IS_FREE) {
+                mDisksOnBoard[y][columnToInsertInto]
+                        = (player == Players.PLAYER ? PLAYER_DISK : AI_DISK);
+
+                mMovesNumber++;
+                disk.animate().start();     // // TODO: 18-Feb-16 Needs duplicated, and checked
+                return true;
+            }
+        }
+
+        // If we're here, means the intended column was full with disks.
+        // But the AI must make a move, so try the next column.
+        if (mMovesNumber < 1 && player == Players.AI) {
+            // careful to not get a seg fault, must return to 0 after last column
+            if (columnToInsertInto == mNumberOfColumns - 1) {
+                storeNewDisk(Players.AI, 0);
+            }
+            else {
+                storeNewDisk(Players.AI, ++columnToInsertInto);
+            }
+        }
+
+        return false;   // the column is filled with disks
+    }
+
+    public boolean haveWinner() {
+        if (mHaveWinner == true) {
+            // TODO: 18-Feb-16 What should we do if we have a winner
+        }
+
+        return true;
+    }
+
+    public boolean haveDraw() {
+        if (mIsDraw == true) {
+            // TODO: 18-Feb-16 What should we do in case of a draw
+        }
+
+        return true;
+    }
 
 }
