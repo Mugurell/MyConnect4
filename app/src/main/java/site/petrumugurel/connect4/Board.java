@@ -1,19 +1,39 @@
 package site.petrumugurel.connect4;
 
+import android.util.Log;
 import android.view.View;
 
 import java.util.Random;
 
 
-// TODO: 18-Feb-16 MAJOR REWORK
-// To let the disk fall into the last free space we I'll use an array similar to mDisksOnBopard
-// array - lets call it mPositionsOnBoard which will hold a reference to each imageView on the
-// board.
-// Already find the lowest free space in a column, just need to call that imageView to animate
-// etc, and that will be the last of it.
-
-
-
+/**********************************************************************************
+ *
+ *      The Board can take any reasonable size
+ *      (between MIN_ROWS - MAX_ROWS and MIN_COLUMNS - MAX_COLUMNS)
+ *
+ *
+ *                   |  0  |  1  |  2  |  3    MAX_COLUMNS
+ *                -------------------------- ....   |
+ *                0  |     |     |     |     ....   |
+ *                1  |     |     |     |     ....   |
+ *                2  |     |     |     |     ....   |
+ *                3  |     |     |     |     ....   |
+ *                .  |     .     .     .     ....   |
+ *                .  |     .     .     .     ....   |
+ *         MAX_ROWS  |     .     .     .     ....   |
+ *               ------------------------------------
+ *
+ *
+ *
+ *      It has all the required members and provides all needed methods to make it possible to
+ *          - create a board for a game similar to "Connect 4" with any reasonable number of rows
+ *          and columns and also any number of disks needed to win;
+ *          - store two different types of disks into any of its free positions;
+ *          - check for winners on any row/column/diagonal;
+ *
+ *      In short this is to contain all the underlying logic of the game.
+ *
+ ************************************************************************************/
 
 
 
@@ -29,30 +49,36 @@ public class Board {
      * <p><br>Only way to get an instance of the {@link Board} - singleton class.</p>
      * <p>For to use it you must first call {@link Board#init(int, int, int)}.</p>
      */
-    public static final Board INSTANCE = new Board();
+//    public static final Board INSTANCE = new Board();
 
-    private static Board getInstance() {
-        return INSTANCE;
+//    private static Board getInstance() {
+//        return INSTANCE;
+//    }
+
+    public enum PLAYERS {
+        PLAYER, AI
     }
 
-    public enum Players {PLAYER, AI}
-    
+
     /**
      * The ImageView representing the playing disk.
      * <br>Allows to set various properties, useful for animation.
      */
     public static View disk;
-    
-    public static final  int     PLAYER_DISK      = 0x01;  // the color of the player's disks
-    public static final  int     AI_DISK          = 0x10;  // the color of the AI's disks
+
+    private static final int     PLAYER_DISK      = R.drawable.red;
+    private static final int     AI_DISK          = R.drawable.white;
     private static final int     IS_FREE          = 0x00;
     private static final int     MIN_ROWS         = 4;
     private static final int     MAX_ROWS         = 10;
     private static final int     MIN_COLUMNS      = 4;
     private static final int     MAX_COLUMNS      = 10;
     private static final int     MIN_DISKS_TO_WIN = 3;
-    private static       boolean mHaveWinner      = false;
-    private              boolean mIsDraw          = false;
+    protected            boolean mHaveWinner      = false;
+    protected            boolean mIsDraw          = false;
+    protected            boolean mPlayerWon       = false;
+    protected            boolean mAIWon           = false;
+
 
     // Following are to be inputted by the user
     private int mNumberOfRows;
@@ -60,6 +86,11 @@ public class Board {
     private int mDisksNeededForWin;
     private int mMovesNumber;   // Todo Don't forget to increment this for every move
 
+    /**
+     * Keep track of the position of disks on the board.
+     * <br>In the &nbsp;[row][column]&nbsp; array it will store whether that position
+     * {@link #IS_FREE} / {@link #PLAYER_DISK} / {@link #AI_DISK}.
+     */
     private int[][] mDisksOnBoard;  // keep the position of disks on the board
 
     /**
@@ -92,7 +123,7 @@ public class Board {
         if (!(disksNeededForWin >= MIN_DISKS_TO_WIN)) {
             throw new IllegalArgumentException("A line of at least 3 disks is normally needed");
         }
-        if (!(disksNeededForWin >= rows) || !(disksNeededForWin >= columns)) {
+        if (disksNeededForWin >= rows || disksNeededForWin >= columns) {
             throw new IllegalArgumentException("More disks needed to win than spaces on the board");
         }
 
@@ -101,74 +132,115 @@ public class Board {
         mDisksNeededForWin = disksNeededForWin;
         mMovesNumber = 0;
 
+        clearBoard();
+    }
+
+    public Board(int rows, int columns, int disksNeededForWin)
+            throws IllegalArgumentException {
+
+        if (!(rows >= MIN_ROWS && columns >= MIN_COLUMNS)) {
+            throw new IllegalArgumentException("Minimum " + MIN_ROWS + " rows and "
+                                               + MIN_COLUMNS + " columns");
+        }
+        if (!(rows <= MAX_ROWS && columns <= MAX_COLUMNS)) {
+            throw new IllegalArgumentException("Maximum " + MAX_ROWS + " rows and "
+                                               + MAX_COLUMNS + " columns.");
+        }
+        if (!(disksNeededForWin >= MIN_DISKS_TO_WIN)) {
+            throw new IllegalArgumentException("A line of at least 3 disks is normally needed");
+        }
+        if (disksNeededForWin >= rows || disksNeededForWin >= columns) {
+            throw new IllegalArgumentException("More disks needed to win than spaces on the board");
+        }
+
+        mNumberOfRows = rows;
+        mNumberOfColumns = columns;
+        mDisksNeededForWin = disksNeededForWin;
+
+        clearBoard();
+    }
+
+    protected void clearBoard() {
         mDisksOnBoard = new int[mNumberOfRows][mNumberOfColumns];
-        for (int x = mNumberOfColumns; x >= 0; x--) {
-            for (int y = mNumberOfRows; y >= 0; y--) {
+        for (int x = mNumberOfColumns - 1; x >= 0; x--) {
+            for (int y = mNumberOfRows - 1; y >= 0; y--) {
                 mDisksOnBoard[y][x] = IS_FREE;
             }
         }
+
+        mMovesNumber = 0;
+        mIsDraw = mHaveWinner = false;
     }
 
     /**
-     * <p>If all possible moves were made - all positions are full of disks // todo draw</p>
-     * <p>Else will traverse every position to check if there are {@link Board#mDisksNeededForWin}
-     * of the same colour in a horizontal, vertical or diagonal(any) line.</p>
+     * Try to store a new disk on behalf of player at the indicated column.
+     * @param columnToInsertInto column into which to store a new disk, into the lowest free row.
+     * @return {@code true} if a new disk was inserted at the indicated column.<br>
+     *         {@code false} if there are no free spaces in the column. Must select another.
+     */
+    protected Integer makePlayerMove(int columnToInsertInto) {
+        return storeNewDisk(PLAYERS.PLAYER, columnToInsertInto);
+    }
+
+    /**
+     * <p>To be called after every move to check for winners or a draw.</p>
+     * <p>Will traverse every position on the board to check if there are
+     * {@link Board#mDisksNeededForWin} of the same colour in any horizontal/vertical
+     * or diagonal line.</p>
      */
     // // TODO: 18-Feb-16 Needs refactoring badly
     public void checkForWinner() {
-        if (mMovesNumber == mNumberOfRows * mNumberOfColumns) {
-            mIsDraw = true;
-            return;
-        }
-
         // no point in checking if there are not enough moves made
-        else if (mMovesNumber >= (mDisksNeededForWin * 2) - 1) {
-            boolean playerWon = true;
-            boolean AIWon = true;
-            int noOfRedDisks;
-            int noOfWhiteDisks;
+        if (mMovesNumber >= (mDisksNeededForWin * 2) - 1) {
+            mPlayerWon = false;
+            mAIWon = false;
+            int noOfPlayersDisks;
+            int noOfAIsDisks;
             int x;  // counter for the columns
             int y;  // counter for the rows
 
 
             // Check each row for winners
-            for (y = 0; y < mNumberOfRows; y++) {
-                noOfRedDisks = noOfWhiteDisks = 0;
-                for (x = 0; x < mNumberOfColumns - mDisksNeededForWin; x++) {
+            for (y = mNumberOfRows - 1; y >= 0; y--) {
+                noOfPlayersDisks = noOfAIsDisks = 0;
+                // if not found a viable disk until "- mDisksNeededForWin" there's no point in tryin
+                for (x = 0; x <= mNumberOfColumns - mDisksNeededForWin; x++) {
                     if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                        noOfRedDisks++;
+                        noOfPlayersDisks++;
+                        x += 1;
                         // check for a continuous mDisksNeededToWin line of same colour disks
                         for (int disksNeeded = x + mDisksNeededForWin; x != disksNeeded; x++) {
                             if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                                noOfRedDisks++;
+                                noOfPlayersDisks++;
+                                if (noOfPlayersDisks >= mDisksNeededForWin) {
+                                    mHaveWinner = mPlayerWon =true;
+                                    return;
+                                }
                             }
                             else {
-                                noOfRedDisks = 0;
+                                noOfPlayersDisks = 0;
                                 break;
-                            }
-                        }
-                        if (noOfRedDisks == mDisksNeededForWin) {
-                            if (noOfRedDisks == mDisksNeededForWin) {
-                                mHaveWinner = true;
-                                return;
                             }
                         }
                     }
-                    else if (mDisksOnBoard[y][x] == AI_DISK) {
-                        noOfWhiteDisks++;
+
+                    else if (x <= mNumberOfColumns - mDisksNeededForWin &&
+                             mDisksOnBoard[y][x] == AI_DISK) {
+                        noOfAIsDisks++;
+                        x += 1;
                         // check for a continuous mDisksNeededToWin line of same colour disks
                         for (int disksNeeded = x + mDisksNeededForWin; x != disksNeeded; x++) {
                             if (mDisksOnBoard[y][x] == AI_DISK) {
-                                noOfWhiteDisks++;
+                                noOfAIsDisks++;
+                                if (noOfAIsDisks == mDisksNeededForWin) {
+                                    mHaveWinner = mAIWon = true;
+                                    return;
+                                }
                             }
                             else {
-                                noOfWhiteDisks = 0;
+                                noOfAIsDisks = 0;
                                 break;
                             }
-                        }
-                        if (noOfWhiteDisks == mDisksNeededForWin) {
-                            mHaveWinner = true;
-                            return;
                         }
                     }   // check for AI disks
                 }   // columns iteration
@@ -177,42 +249,44 @@ public class Board {
 
             // Check each column for winners
             for (x = 0; x < mNumberOfColumns; x++) {
-                noOfRedDisks = noOfWhiteDisks = 0;
-                for (y = 0; y < mNumberOfRows - mDisksNeededForWin; y++) {
+                noOfPlayersDisks = noOfAIsDisks = 0;
+                // if not found a viable disk until "mDisksNeededForWin - 1"
+                // there's no point in trying
+                for (y = mNumberOfRows - 1; y >= mDisksNeededForWin - 1; y--) {
                     if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                        noOfRedDisks++;
+                        noOfPlayersDisks++;
+                        y -= 1;
                         // check for a continuous mDisksNeededToWin line of same colour disks
-                        for (int disksNeeded = y + mDisksNeededForWin; y != disksNeeded; y++) {
+                        for (int disksNeeded = y - mDisksNeededForWin; y != disksNeeded; y--) {
                             if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                                noOfRedDisks++;
+                                noOfPlayersDisks++;
+                                if (noOfPlayersDisks == mDisksNeededForWin) {
+                                    mHaveWinner = mPlayerWon = true;
+                                    return;
+                                }
                             }
                             else {
-                                noOfRedDisks = 0;
+                                noOfPlayersDisks = 0;
                                 break;
-                            }
-                        }
-                        if (noOfRedDisks == mDisksNeededForWin) {
-                            if (noOfRedDisks == mDisksNeededForWin) {
-                                mHaveWinner = true;
-                                return;
                             }
                         }
                     }
-                    else if (mDisksOnBoard[y][x] == AI_DISK) {
-                        noOfWhiteDisks++;
+                    else if (y >= mDisksNeededForWin - 1 && mDisksOnBoard[y][x] == AI_DISK) {
+                        noOfAIsDisks++;
+                        y -= 1;
                         // check for a continuous mDisksNeededToWin line of same colour disks
-                        for (int disksNeeded = y + mDisksNeededForWin; y != disksNeeded; y++) {
+                        for (int disksNeeded = y - mDisksNeededForWin; y != disksNeeded; y--) {
                             if (mDisksOnBoard[y][x] == AI_DISK) {
-                                noOfWhiteDisks++;
+                                noOfAIsDisks++;
+                                if (noOfAIsDisks == mDisksNeededForWin) {
+                                    mHaveWinner = mAIWon = true;
+                                    return;
+                                }
                             }
                             else {
-                                noOfWhiteDisks = 0;
+                                noOfAIsDisks = 0;
                                 break;
                             }
-                        }
-                        if (noOfWhiteDisks == mDisksNeededForWin) {
-                            mHaveWinner = true;
-                            return;
                         }
                     }   // check for AI disks
                 }   // rows iteration
@@ -220,69 +294,266 @@ public class Board {
 
 
             // Check upwards diagonals for winners
-            for (y = 0, x = 0; y < mNumberOfRows - mDisksNeededForWin
-                               && x < mNumberOfColumns - mDisksNeededForWin; y++, x++) {
-                noOfRedDisks = noOfWhiteDisks = 0;
-                if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                    noOfRedDisks++;
-                    for (int disksNeeded = y + mDisksNeededForWin; y != disksNeeded; y++, x++) {
-                        if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                            noOfRedDisks++;
+            int startingRow = mNumberOfRows - 1;
+            int startingCol = 0;
+            // First by incrementing the starting row number
+            while (startingRow >= mDisksNeededForWin - 1) {
+                for (y = startingRow, x = startingCol;
+                     y >= mDisksNeededForWin - 1 &&
+                     x <= mNumberOfColumns - mDisksNeededForWin;
+                     y--, x++) {
+                    noOfPlayersDisks = noOfAIsDisks = 0;
+                    if (mDisksOnBoard[y][x] == PLAYER_DISK) {
+                        noOfPlayersDisks++;
+
+                        while (--y >= 0 && ++x <= mNumberOfColumns - 1) {
+                            if (mDisksOnBoard[y][x] == PLAYER_DISK) {
+                                noOfPlayersDisks++;
+
+                                if (noOfPlayersDisks >= mDisksNeededForWin) {
+                                    mHaveWinner = mPlayerWon = true;
+                                    return;
+                                }
+                            }
+                            else {
+                                break;
+                            }
                         }
-                        else {
-                            noOfRedDisks = 0;
-                            break;  // from the inner for loop
-                        }
-                    }
-                    if (noOfRedDisks == mDisksNeededForWin) {
-                        mHaveWinner = true;
-                        return;
                     }
                 }
-                else if (mDisksOnBoard[y][x] == AI_DISK) {
-                    noOfWhiteDisks++;
-                    // check for a continuous mDisksNeededToWin line of same colour disks
-                    for (int disksNeeded = y + mDisksNeededForWin; y != disksNeeded; y++, x++) {
-                        if (mDisksOnBoard[y][x] == AI_DISK) {
-                            noOfWhiteDisks++;
-                        }
-                        else {
-                            noOfWhiteDisks = 0;
-                            break;
-                        }
-                    }
-                    if (noOfWhiteDisks == mDisksNeededForWin) {
-                        mHaveWinner = true;
-                        return;
-                    }
-                }   //  check for AI disks
-            }   //  big loop that checks the diagonals
-        } //  if (mMovesNumber >= 7)
-    }   // method end
 
-    /**
-     * Try to store a new disk on behalf of player at the indicated column.
-     * @param columnToInsertInto column into which to store a new disk, into the lowest free row.
-     * @return {@code true} if a new disk was inserted at the indicated column.<br>
-     *         {@code false} if there are no free spaces in the column. Must select another.
-     */
-    public boolean makePlayerMove(int columnToInsertInto) {
-        return storeNewDisk(Players.PLAYER, columnToInsertInto);
+                // Starting again from bottom left corner
+                for (y = startingRow, x = startingCol;
+                     y >= mDisksNeededForWin - 1 &&
+                     x <= mNumberOfColumns - mDisksNeededForWin;
+                     y--, x++) {
+                    noOfPlayersDisks = noOfAIsDisks = 0;
+                    if (mDisksOnBoard[y][x] == AI_DISK) {
+                        noOfAIsDisks++;
+
+                        while (--y >= 0 && ++x <= mNumberOfColumns - 1) {
+                            if (mDisksOnBoard[y][x] == AI_DISK) {
+                                noOfAIsDisks++;
+
+                                if (noOfAIsDisks >= mDisksNeededForWin) {
+                                    mHaveWinner = mAIWon = true;
+                                    return;
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                startingRow--;      // move to next upper diagonal based on starting row
+            }
+
+
+
+            // Second by incrementing the starting column number
+            startingRow = mNumberOfRows - 1;
+            startingCol = 1;
+            while (startingCol <= mNumberOfColumns - mDisksNeededForWin) {
+                for (y = startingRow, x = startingCol;
+                     y >= mDisksNeededForWin - 1 &&
+                     x <= mNumberOfColumns - mDisksNeededForWin;
+                     y--, x++) {
+
+                    noOfPlayersDisks = noOfAIsDisks = 0;
+                    if (mDisksOnBoard[y][x] == PLAYER_DISK) {
+                        noOfPlayersDisks++;
+
+                        while (--y >= 0 && ++x <= mNumberOfColumns - 1) {
+                            if (mDisksOnBoard[y][x] == PLAYER_DISK) {
+                                noOfPlayersDisks++;
+
+                                if (noOfPlayersDisks >= mDisksNeededForWin) {
+                                    mHaveWinner = mPlayerWon = true;
+                                    return;
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                for (y = startingRow, x = startingCol;
+                     y >= mDisksNeededForWin - 1 &&
+                     x <= mNumberOfColumns - mDisksNeededForWin;
+                     y--, x++) {
+
+                    noOfPlayersDisks = noOfAIsDisks = 0;
+                    if (mDisksOnBoard[y][x] == AI_DISK) {
+                        noOfAIsDisks++;
+
+                        while (--y >= 0 && ++x <= mNumberOfColumns - 1) {
+                            if (mDisksOnBoard[y][x] == AI_DISK) {
+                                noOfAIsDisks++;
+
+                                if (noOfAIsDisks >= mDisksNeededForWin) {
+                                    mHaveWinner = mAIWon = true;
+                                    return;
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                startingCol++;      // move to the next upper diagonal based on starting column
+            }
+
+
+
+            // Check downwards diagonals for winners
+            startingRow = mNumberOfRows - mDisksNeededForWin;
+            startingCol = 0;
+            // First by incrementing the starting row number
+            while (startingRow >= 0) {
+                for (y = startingRow, x = startingCol;
+                     y <= mNumberOfRows - 1 && x <= mNumberOfColumns - 1;
+                     y++, x++) {
+
+                    noOfPlayersDisks = noOfAIsDisks = 0;
+                    if (mDisksOnBoard[y][x] == PLAYER_DISK) {
+                        noOfPlayersDisks++;
+                        while (++y <= mNumberOfRows - 1 && ++x <= mNumberOfColumns - 1) {
+                            if (mDisksOnBoard[y][x] == PLAYER_DISK) {
+                                noOfPlayersDisks++;
+
+                                if (noOfPlayersDisks >= mDisksNeededForWin) {
+                                    mHaveWinner = mPlayerWon = true;
+                                    return;
+                                }
+                            }
+                            else {
+                                break;  // because don't have an uninterrupted line of disks
+                            }
+                        }
+                    }
+                }
+
+                for (y = startingRow, x = startingCol;
+                     y <= mNumberOfRows - 1 && x <= mNumberOfColumns - 1;
+                     y++, x++) {
+
+                    noOfPlayersDisks = noOfAIsDisks = 0;
+                    if (mDisksOnBoard[y][x] == AI_DISK) {
+                        noOfAIsDisks++;
+                        while (++y <= mNumberOfRows - 1 && ++x <= mNumberOfColumns - 1) {
+                            if (mDisksOnBoard[y][x] == AI_DISK) {
+                                noOfAIsDisks++;
+
+                                if (noOfAIsDisks >= mDisksNeededForWin) {
+                                    mHaveWinner = mAIWon = true;
+                                    return;
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                startingRow--;      // move to next upper diagonal based on starting row
+            }
+
+
+
+            // Second by incrementing the starting column number
+            startingRow = 0;
+            startingCol = 1;    // the downwards diagonal from 0,0 was already checked
+            while (startingCol <= mNumberOfColumns - mDisksNeededForWin) {
+                for (y = startingRow, x = startingCol;
+                     y <= mNumberOfRows - mDisksNeededForWin &&
+                     x <= mNumberOfColumns - mDisksNeededForWin;
+                     y++, x++) {
+
+                    noOfPlayersDisks = noOfAIsDisks = 0;
+                    if (mDisksOnBoard[y][x] == PLAYER_DISK) {
+                        noOfPlayersDisks++;
+                        while (++y <= mNumberOfRows - 1 && ++x <= mNumberOfColumns - 1) {
+                            if (mDisksOnBoard[y][x] == PLAYER_DISK) {
+                                noOfPlayersDisks++;
+
+                                if (noOfPlayersDisks >= mDisksNeededForWin) {
+                                    mHaveWinner = mPlayerWon = true;
+                                    return;
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                for (y = startingRow, x = startingCol;
+                     y <= mNumberOfRows - mDisksNeededForWin &&
+                     x <= mNumberOfColumns - mDisksNeededForWin;
+                     y++, x++) {
+
+                    noOfPlayersDisks = noOfAIsDisks = 0;
+                    if (mDisksOnBoard[y][x] == AI_DISK) {
+                        noOfAIsDisks++;
+                        while (++y <= mNumberOfRows - 1 && ++x <= mNumberOfColumns - 1) {
+                            if (mDisksOnBoard[y][x] == AI_DISK) {
+                                noOfAIsDisks++;
+
+                                if (noOfAIsDisks >= mDisksNeededForWin) {
+                                    mHaveWinner = mAIWon = true;
+                                    return;
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                startingCol++;      // move to the next upper diagonal based on starting column
+            }
+
+
+            if ((mMovesNumber == mNumberOfRows * mNumberOfColumns) && !mHaveWinner) {
+                mIsDraw = true;
+                return;
+            }
+
+        }
+
     }
+
+
+
 
     /**
      * A simple method which will insert a new disk on behalf of the AI into a random column.
-     * @return
+     * @return position where the AI's disk was inserted {row, column}.
      */
-    private boolean makeAIMove() {
-        if (!mHaveWinner) {
+    protected Integer[] makeAIMove() {
+        Integer AIDiskRow = null;
+        int columnToInsertInto = 0;
+        while (!mHaveWinner && AIDiskRow == null) {
             Random r = new Random();
-            int columnToInsertInto = r.nextInt(mNumberOfColumns);
-            storeNewDisk(Players.AI, columnToInsertInto);
-        }
+            columnToInsertInto = r.nextInt(mNumberOfColumns);
+            AIDiskRow = storeNewDisk(PLAYERS.AI, columnToInsertInto);
 
-        return true;
+            if (AIDiskRow == null) {
+                Log.d("annd AIDiskRow is", "null");
+            }
+        }
+        return new Integer[] {AIDiskRow, columnToInsertInto};
     }
+
 
     /**
      * This method will actually insert a new disk in the indicated column if there's available
@@ -291,39 +562,35 @@ public class Board {
      * will store a new disk into the next available column, starting from 0 if last is full.</p>
      * @param player on behalf of whom this move is made.
      * @param columnToInsertInto where to insert a new disk.
-     * @return {@code true} - if a new disk was inserted at the indicated column.<br>
-     *         {@code false} - if there are no free spaces in the column. Must select another.
+     * @return row number where the disk was stored on the board.<br>
      */
-    private boolean storeNewDisk(Players player, int columnToInsertInto) {
-        if (mMovesNumber == mNumberOfRows * mNumberOfColumns) {
-            return false;
-        }
 
-        for (int y = 0; y < mNumberOfRows; y++) {
+    /**
+     * This method will actually insert a new disk in the indicated column if there's available
+     * space.
+     * @param player on behalf of whom the move is made, will designate the color of the stored disk
+     * @param columnToInsertInto board index of the column where to try to insert the disk
+     * @return  board index of the row where the disk was stored
+     *          <br>{@code null} if on the indicated column there are no free spaces available
+     */
+    protected Integer storeNewDisk(PLAYERS player, int columnToInsertInto) {
+//        if (mMovesNumber == mNumberOfRows * mNumberOfColumns) {
+//            return false;
+//        }
+
+        for (int y = mNumberOfRows - 1; y >= 0 ; y--) {
             if (mDisksOnBoard[y][columnToInsertInto] == IS_FREE) {
                 mDisksOnBoard[y][columnToInsertInto]
-                        = (player == Players.PLAYER ? PLAYER_DISK : AI_DISK);
+                        = (player == PLAYERS.PLAYER ? PLAYER_DISK : AI_DISK);
 
                 mMovesNumber++;
-                disk.animate().start();     // // TODO: 18-Feb-16 Needs duplicated, and checked
-                return true;
+                return y;
             }
         }
 
-        // If we're here, means the intended column was full with disks.
-        // But the AI must make a move, so try the next column.
-        if (mMovesNumber < 1 && player == Players.AI) {
-            // careful to not get a seg fault, must return to 0 after last column
-            if (columnToInsertInto == mNumberOfColumns - 1) {
-                storeNewDisk(Players.AI, 0);
-            }
-            else {
-                storeNewDisk(Players.AI, ++columnToInsertInto);
-            }
-        }
-
-        return false;   // the column is filled with disks
+        return null;   // the column is filled with disks
     }
+
 
     public boolean haveWinner() {
         if (mHaveWinner == true) {

@@ -124,6 +124,7 @@
                     android:id="@+id/mainA_RL_FR_GR_IV_piece0x0"
                     android:layout_height="66dp"
                     android:layout_width="match_parent"
+                    android:layout_marginTop="5.2dp"
                     android:src="@drawable/red"
                     tools:ignore="ContentDescription"/>
 
@@ -131,6 +132,7 @@
                     android:id="@+id/mainA_RL_FR_GR_IV_piece0x1"
                     android:layout_height="66dp"
                     android:layout_width="match_parent"
+                    android:layout_marginTop="5.2dp"
                     android:src="@drawable/red"
                     tools:ignore="ContentDescription"/>
 
@@ -138,6 +140,7 @@
                     android:id="@+id/mainA_RL_FR_GR_IV_piece0x2"
                     android:layout_height="66dp"
                     android:layout_width="match_parent"
+                    android:layout_marginTop="5.2dp"
                     android:src="@drawable/red"
                     tools:ignore="ContentDescription"/>
 
@@ -145,6 +148,7 @@
                     android:id="@+id/mainA_RL_FR_GR_IV_piece0x3"
                     android:layout_height="66dp"
                     android:layout_width="match_parent"
+                    android:layout_marginTop="5.2dp"
                     android:src="@drawable/red"
                     tools:ignore="ContentDescription"/>
 
@@ -180,8 +184,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="66dp"
                     android:layout_marginTop="5.2dp"
-                    tools:ignore="ContentDescription"
-                    android:onClick="dropIn"/>
+                    tools:ignore="ContentDescription"/>
 
                 <ImageView
                     android:id="@+id/mainA_RL_FR_GR_IV_piece1x3"
