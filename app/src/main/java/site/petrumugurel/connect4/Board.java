@@ -1,7 +1,6 @@
 package site.petrumugurel.connect4;
 
 import android.util.Log;
-import android.view.View;
 
 import java.util.Random;
 
@@ -55,36 +54,36 @@ public class Board {
 //        return INSTANCE;
 //    }
 
+
     public enum PLAYERS {
         PLAYER, AI
     }
 
 
+    private static final int PLAYER_DISK      = R.drawable.red;
+    private static final int AI_DISK          = R.drawable.white;
+    private static final int IS_FREE          = 0x00;
+    private static final int MIN_ROWS         = 4;
+    private static final int MAX_ROWS         = 10;
+    private static final int MIN_COLUMNS      = 4;
+    private static final int MAX_COLUMNS      = 10;
+    private static final int MIN_DISKS_TO_WIN = 3;
+
     /**
-     * The ImageView representing the playing disk.
-     * <br>Allows to set various properties, useful for animation.
+     * To be used in checks for if we have a winner for the current game.
+     * <p>It will either: <br> &#09; be {@code null} signaling we don't have a winner &nbsp; or,
+     * <br>&#09; contain the name of the winner from {@link site.petrumugurel.connect4.Board
+     * PLAYERS} as a {@code String}. </p>
      */
-    public static View disk;
+    protected String  mHaveWinner  = null;
+    protected boolean mIsDraw      = false;
+    private   int     mMovesNumber = 0;
 
-    private static final int     PLAYER_DISK      = R.drawable.red;
-    private static final int     AI_DISK          = R.drawable.white;
-    private static final int     IS_FREE          = 0x00;
-    private static final int     MIN_ROWS         = 4;
-    private static final int     MAX_ROWS         = 10;
-    private static final int     MIN_COLUMNS      = 4;
-    private static final int     MAX_COLUMNS      = 10;
-    private static final int     MIN_DISKS_TO_WIN = 3;
-    protected            boolean mHaveWinner      = false;
-    protected            boolean mIsDraw          = false;
-    protected            boolean mPlayerWon       = false;
-    protected            boolean mAIWon           = false;
-
-
-    // Following are to be inputted by the user
+    // Following are to be inputted by the user when creating the Board.
     private int mNumberOfRows;
     private int mNumberOfColumns;
+
     private int mDisksNeededForWin;
-    private int mMovesNumber;   // Todo Don't forget to increment this for every move
 
     /**
      * Keep track of the position of disks on the board.
@@ -169,18 +168,10 @@ public class Board {
         }
 
         mMovesNumber = 0;
-        mIsDraw = mHaveWinner = false;
+        mIsDraw = false;
+        mHaveWinner = null;
     }
 
-    /**
-     * Try to store a new disk on behalf of player at the indicated column.
-     * @param columnToInsertInto column into which to store a new disk, into the lowest free row.
-     * @return {@code true} if a new disk was inserted at the indicated column.<br>
-     *         {@code false} if there are no free spaces in the column. Must select another.
-     */
-    protected Integer makePlayerMove(int columnToInsertInto) {
-        return storeNewDisk(PLAYERS.PLAYER, columnToInsertInto);
-    }
 
     /**
      * <p>To be called after every move to check for winners or a draw.</p>
@@ -188,382 +179,190 @@ public class Board {
      * {@link Board#mDisksNeededForWin} of the same colour in any horizontal/vertical
      * or diagonal line.</p>
      */
-    // // TODO: 18-Feb-16 Needs refactoring badly
-    public void checkForWinner() {
+    private void checkForWinner() {
         // no point in checking if there are not enough moves made
         if (mMovesNumber >= (mDisksNeededForWin * 2) - 1) {
-            mPlayerWon = false;
-            mAIWon = false;
-            int noOfPlayersDisks;
-            int noOfAIsDisks;
             int x;  // counter for the columns
             int y;  // counter for the rows
 
 
-            // Check each row for winners
+            // Check each row for winners starting from bottom left corner of the board, going up.
             for (y = mNumberOfRows - 1; y >= 0; y--) {
-                noOfPlayersDisks = noOfAIsDisks = 0;
-                // if not found a viable disk until "- mDisksNeededForWin" there's no point in tryin
+                // Check every column from left to right while there are at least mDisksNeededForWin
+                // number of columns. If less, can't have the needed number of disks to win.
                 for (x = 0; x <= mNumberOfColumns - mDisksNeededForWin; x++) {
-                    if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                        noOfPlayersDisks++;
-                        x += 1;
-                        // check for a continuous mDisksNeededToWin line of same colour disks
-                        for (int disksNeeded = x + mDisksNeededForWin; x != disksNeeded; x++) {
-                            if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                                noOfPlayersDisks++;
-                                if (noOfPlayersDisks >= mDisksNeededForWin) {
-                                    mHaveWinner = mPlayerWon =true;
-                                    return;
-                                }
-                            }
-                            else {
-                                noOfPlayersDisks = 0;
-                                break;
+                    int lineOfDisks = 0;
+                    if (mDisksOnBoard[y][x] != IS_FREE) {
+                        lineOfDisks++;
+                        // Now search if next disks are of the same, stopping when we have a winner
+                        // or if, before that, we have a different disk than needed.
+                        while (mDisksOnBoard[y][x] == mDisksOnBoard[y][x + 1]) {
+                            x++;    // x+1 column is of the same, make it the current column.
+                            if (++lineOfDisks == mDisksNeededForWin) {
+                                mHaveWinner = mDisksOnBoard[y][x]
+                                              == PLAYER_DISK ? PLAYERS.PLAYER.toString()
+                                                             : PLAYERS.AI.toString();
+                                return;
                             }
                         }
                     }
-
-                    else if (x <= mNumberOfColumns - mDisksNeededForWin &&
-                             mDisksOnBoard[y][x] == AI_DISK) {
-                        noOfAIsDisks++;
-                        x += 1;
-                        // check for a continuous mDisksNeededToWin line of same colour disks
-                        for (int disksNeeded = x + mDisksNeededForWin; x != disksNeeded; x++) {
-                            if (mDisksOnBoard[y][x] == AI_DISK) {
-                                noOfAIsDisks++;
-                                if (noOfAIsDisks == mDisksNeededForWin) {
-                                    mHaveWinner = mAIWon = true;
-                                    return;
-                                }
-                            }
-                            else {
-                                noOfAIsDisks = 0;
-                                break;
-                            }
-                        }
-                    }   // check for AI disks
-                }   // columns iteration
-            }   // rows iteration
+                }
+            }
 
 
-            // Check each column for winners
+            // Check each column for winners starting from bottom left corner of the board
+            // going to the right
             for (x = 0; x < mNumberOfColumns; x++) {
-                noOfPlayersDisks = noOfAIsDisks = 0;
-                // if not found a viable disk until "mDisksNeededForWin - 1"
-                // there's no point in trying
+                // Check for a first disk on every row on current column from the bottom to the
+                // mDisksNeededForWin - 1 th row so that we can have a continuous line of the same
+                // colour disks, needed to win.
                 for (y = mNumberOfRows - 1; y >= mDisksNeededForWin - 1; y--) {
-                    if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                        noOfPlayersDisks++;
-                        y -= 1;
-                        // check for a continuous mDisksNeededToWin line of same colour disks
-                        for (int disksNeeded = y - mDisksNeededForWin; y != disksNeeded; y--) {
-                            if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                                noOfPlayersDisks++;
-                                if (noOfPlayersDisks == mDisksNeededForWin) {
-                                    mHaveWinner = mPlayerWon = true;
-                                    return;
-                                }
-                            }
-                            else {
-                                noOfPlayersDisks = 0;
-                                break;
+                    int lineOfDisks = 0;
+                    if (mDisksOnBoard[y][x] != IS_FREE) {
+                        lineOfDisks++;
+                        // Now search if next disks are of the same, stopping when we have a winner
+                        // or if, before that, we have a different disk than needed.
+                        while (mDisksOnBoard[y][x] == mDisksOnBoard[y - 1][x]) {
+                            y--;
+                            if (++lineOfDisks == mDisksNeededForWin) {
+                                mHaveWinner = mDisksOnBoard[y][x]
+                                              == PLAYER_DISK ? PLAYERS.PLAYER.toString()
+                                                             : PLAYERS.AI.toString();
+                                return;
                             }
                         }
                     }
-                    else if (y >= mDisksNeededForWin - 1 && mDisksOnBoard[y][x] == AI_DISK) {
-                        noOfAIsDisks++;
-                        y -= 1;
-                        // check for a continuous mDisksNeededToWin line of same colour disks
-                        for (int disksNeeded = y - mDisksNeededForWin; y != disksNeeded; y--) {
-                            if (mDisksOnBoard[y][x] == AI_DISK) {
-                                noOfAIsDisks++;
-                                if (noOfAIsDisks == mDisksNeededForWin) {
-                                    mHaveWinner = mAIWon = true;
-                                    return;
-                                }
-                            }
-                            else {
-                                noOfAIsDisks = 0;
-                                break;
-                            }
-                        }
-                    }   // check for AI disks
-                }   // rows iteration
-            }   // columns iteration
+                }
+            }
 
 
-            // Check upwards diagonals for winners
+            // Check upwards diagonals for winners starting from the bottom left corner.
             int startingRow = mNumberOfRows - 1;
             int startingCol = 0;
-            // First by incrementing the starting row number
-            while (startingRow >= mDisksNeededForWin - 1) {
+            boolean finishedWRows = false;
+            while (true) {
+                // until there's room for a winning streak
                 for (y = startingRow, x = startingCol;
-                     y >= mDisksNeededForWin - 1 &&
-                     x <= mNumberOfColumns - mDisksNeededForWin;
+                     y >= mDisksNeededForWin - 1 && x <= mNumberOfColumns - mDisksNeededForWin;
                      y--, x++) {
-                    noOfPlayersDisks = noOfAIsDisks = 0;
-                    if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                        noOfPlayersDisks++;
 
-                        while (--y >= 0 && ++x <= mNumberOfColumns - 1) {
-                            if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                                noOfPlayersDisks++;
-
-                                if (noOfPlayersDisks >= mDisksNeededForWin) {
-                                    mHaveWinner = mPlayerWon = true;
-                                    return;
-                                }
-                            }
-                            else {
-                                break;
+                    int lineOfDisks = 0;
+                    if (mDisksOnBoard[y][x] != IS_FREE) {
+                        lineOfDisks++;
+                        while (mDisksOnBoard[y][x] == mDisksOnBoard[y - 1][x + 1]) {
+                            y--; x++;
+                            if (++lineOfDisks == mDisksNeededForWin) {
+                                mHaveWinner = mDisksOnBoard[y][x]
+                                              == PLAYER_DISK ? PLAYERS.PLAYER.toString()
+                                                             : PLAYERS.AI.toString();
+                                return;
                             }
                         }
                     }
                 }
-
-                // Starting again from bottom left corner
-                for (y = startingRow, x = startingCol;
-                     y >= mDisksNeededForWin - 1 &&
-                     x <= mNumberOfColumns - mDisksNeededForWin;
-                     y--, x++) {
-                    noOfPlayersDisks = noOfAIsDisks = 0;
-                    if (mDisksOnBoard[y][x] == AI_DISK) {
-                        noOfAIsDisks++;
-
-                        while (--y >= 0 && ++x <= mNumberOfColumns - 1) {
-                            if (mDisksOnBoard[y][x] == AI_DISK) {
-                                noOfAIsDisks++;
-
-                                if (noOfAIsDisks >= mDisksNeededForWin) {
-                                    mHaveWinner = mAIWon = true;
-                                    return;
-                                }
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }
+                // First increment the starting row until we can still have a winning streak.
+                if (startingRow >= mDisksNeededForWin - 1 && !finishedWRows) {
+                    startingRow--;      // move to next upper diagonal based on starting row
                 }
-
-                startingRow--;      // move to next upper diagonal based on starting row
+                // Then increment the starting column until we can still have a winning streak.
+                else if (startingCol <= mNumberOfColumns - mDisksNeededForWin) {
+                    startingRow = mNumberOfRows - 1;
+                    finishedWRows = true;
+                    startingCol++;
+                }
+                // Lastly, if all valid upwards diagonals were checked, our job is done, so break.
+                else {
+                    break;
+                }
             }
 
 
-
-            // Second by incrementing the starting column number
-            startingRow = mNumberOfRows - 1;
-            startingCol = 1;
-            while (startingCol <= mNumberOfColumns - mDisksNeededForWin) {
-                for (y = startingRow, x = startingCol;
-                     y >= mDisksNeededForWin - 1 &&
-                     x <= mNumberOfColumns - mDisksNeededForWin;
-                     y--, x++) {
-
-                    noOfPlayersDisks = noOfAIsDisks = 0;
-                    if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                        noOfPlayersDisks++;
-
-                        while (--y >= 0 && ++x <= mNumberOfColumns - 1) {
-                            if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                                noOfPlayersDisks++;
-
-                                if (noOfPlayersDisks >= mDisksNeededForWin) {
-                                    mHaveWinner = mPlayerWon = true;
-                                    return;
-                                }
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                for (y = startingRow, x = startingCol;
-                     y >= mDisksNeededForWin - 1 &&
-                     x <= mNumberOfColumns - mDisksNeededForWin;
-                     y--, x++) {
-
-                    noOfPlayersDisks = noOfAIsDisks = 0;
-                    if (mDisksOnBoard[y][x] == AI_DISK) {
-                        noOfAIsDisks++;
-
-                        while (--y >= 0 && ++x <= mNumberOfColumns - 1) {
-                            if (mDisksOnBoard[y][x] == AI_DISK) {
-                                noOfAIsDisks++;
-
-                                if (noOfAIsDisks >= mDisksNeededForWin) {
-                                    mHaveWinner = mAIWon = true;
-                                    return;
-                                }
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                startingCol++;      // move to the next upper diagonal based on starting column
-            }
-
-
-
-            // Check downwards diagonals for winners
-            startingRow = mNumberOfRows - mDisksNeededForWin;
-            startingCol = 0;
-            // First by incrementing the starting row number
-            while (startingRow >= 0) {
-                for (y = startingRow, x = startingCol;
-                     y <= mNumberOfRows - 1 && x <= mNumberOfColumns - 1;
-                     y++, x++) {
-
-                    noOfPlayersDisks = noOfAIsDisks = 0;
-                    if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                        noOfPlayersDisks++;
-                        while (++y <= mNumberOfRows - 1 && ++x <= mNumberOfColumns - 1) {
-                            if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                                noOfPlayersDisks++;
-
-                                if (noOfPlayersDisks >= mDisksNeededForWin) {
-                                    mHaveWinner = mPlayerWon = true;
-                                    return;
-                                }
-                            }
-                            else {
-                                break;  // because don't have an uninterrupted line of disks
-                            }
-                        }
-                    }
-                }
-
-                for (y = startingRow, x = startingCol;
-                     y <= mNumberOfRows - 1 && x <= mNumberOfColumns - 1;
-                     y++, x++) {
-
-                    noOfPlayersDisks = noOfAIsDisks = 0;
-                    if (mDisksOnBoard[y][x] == AI_DISK) {
-                        noOfAIsDisks++;
-                        while (++y <= mNumberOfRows - 1 && ++x <= mNumberOfColumns - 1) {
-                            if (mDisksOnBoard[y][x] == AI_DISK) {
-                                noOfAIsDisks++;
-
-                                if (noOfAIsDisks >= mDisksNeededForWin) {
-                                    mHaveWinner = mAIWon = true;
-                                    return;
-                                }
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                startingRow--;      // move to next upper diagonal based on starting row
-            }
-
-
-
-            // Second by incrementing the starting column number
+            // Check downwards diagonals for winners starting from upper left corner.
             startingRow = 0;
-            startingCol = 1;    // the downwards diagonal from 0,0 was already checked
-            while (startingCol <= mNumberOfColumns - mDisksNeededForWin) {
+            startingCol = 0;
+            finishedWRows = false;
+            while (true) {
+                // until there's room for a winning streak
                 for (y = startingRow, x = startingCol;
                      y <= mNumberOfRows - mDisksNeededForWin &&
                      x <= mNumberOfColumns - mDisksNeededForWin;
                      y++, x++) {
 
-                    noOfPlayersDisks = noOfAIsDisks = 0;
-                    if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                        noOfPlayersDisks++;
-                        while (++y <= mNumberOfRows - 1 && ++x <= mNumberOfColumns - 1) {
-                            if (mDisksOnBoard[y][x] == PLAYER_DISK) {
-                                noOfPlayersDisks++;
-
-                                if (noOfPlayersDisks >= mDisksNeededForWin) {
-                                    mHaveWinner = mPlayerWon = true;
-                                    return;
-                                }
-                            }
-                            else {
-                                break;
+                    int lineOfDisks = 0;
+                    if (mDisksOnBoard[y][x] != IS_FREE) {
+                        lineOfDisks++;
+                        while (mDisksOnBoard[y][x] == mDisksOnBoard[y + 1][x + 1]) {
+                            y++; x++;
+                            if (++lineOfDisks == mDisksNeededForWin) {
+                                mHaveWinner = mDisksOnBoard[y][x]
+                                              == PLAYER_DISK ? PLAYERS.PLAYER.toString()
+                                                             : PLAYERS.AI.toString();
+                                return;
                             }
                         }
                     }
                 }
-
-                for (y = startingRow, x = startingCol;
-                     y <= mNumberOfRows - mDisksNeededForWin &&
-                     x <= mNumberOfColumns - mDisksNeededForWin;
-                     y++, x++) {
-
-                    noOfPlayersDisks = noOfAIsDisks = 0;
-                    if (mDisksOnBoard[y][x] == AI_DISK) {
-                        noOfAIsDisks++;
-                        while (++y <= mNumberOfRows - 1 && ++x <= mNumberOfColumns - 1) {
-                            if (mDisksOnBoard[y][x] == AI_DISK) {
-                                noOfAIsDisks++;
-
-                                if (noOfAIsDisks >= mDisksNeededForWin) {
-                                    mHaveWinner = mAIWon = true;
-                                    return;
-                                }
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }
+                // First increment the starting row until we can still have a winning streak.
+                if (startingRow <= mNumberOfRows - mDisksNeededForWin && !finishedWRows) {
+                    startingRow++;      // move to next upper diagonal based on starting row
                 }
-
-                startingCol++;      // move to the next upper diagonal based on starting column
+                // Then increment the starting column until we can still have a winning streak.
+                else if (startingCol <= mNumberOfColumns - mDisksNeededForWin) {
+                    startingRow = 0;
+                    finishedWRows = true;
+                    startingCol++;
+                }
+                // Lastly, if all valid upwards diagonals were checked, our job is done, so break.
+                else {
+                    break;
+                }
             }
 
 
-            if ((mMovesNumber == mNumberOfRows * mNumberOfColumns) && !mHaveWinner) {
+            // If we don't have a winner until now (case in which we should've returned)
+            // check if all possible moves were made, case in which we have a draw.
+            if ((mMovesNumber == mNumberOfRows * mNumberOfColumns) /*&& mHaveWinner == null*/) {
                 mIsDraw = true;
                 return;
             }
-
         }
-
     }
 
 
+    /**
+     * Try to store a new disk on behalf of player at the indicated column.
+     * @param columnToInsertInto column into which to store a new disk, into the lowest free row.
+     * @return index of the row at which the disk was inserted<br>
+     *         {@code null} if the indicated {@code columnToInsertInto} is already full.
+     */
+    protected Integer makePlayerMove(int columnToInsertInto) {
+        return storeNewDisk(PLAYERS.PLAYER, columnToInsertInto);
+    }
 
 
     /**
      * A simple method which will insert a new disk on behalf of the AI into a random column.
+     * while there is not a winner or a draw.
      * @return position where the AI's disk was inserted {row, column}.
      */
     protected Integer[] makeAIMove() {
         Integer AIDiskRow = null;
         int columnToInsertInto = 0;
-        while (!mHaveWinner && AIDiskRow == null) {
-            Random r = new Random();
-            columnToInsertInto = r.nextInt(mNumberOfColumns);
-            AIDiskRow = storeNewDisk(PLAYERS.AI, columnToInsertInto);
+        if (mHaveWinner == null && !mIsDraw) {
+            while (AIDiskRow == null) {
+                Random r = new Random();
+                columnToInsertInto = r.nextInt(mNumberOfColumns);
+                AIDiskRow = storeNewDisk(PLAYERS.AI, columnToInsertInto);
 
-            if (AIDiskRow == null) {
-                Log.d("annd AIDiskRow is", "null");
+                if (AIDiskRow == null) {
+                    Log.d("annd AIDiskRow is", "null");
+                }
             }
+            return new Integer[] {AIDiskRow, columnToInsertInto};
         }
-        return new Integer[] {AIDiskRow, columnToInsertInto};
+        return null;
     }
 
-
-    /**
-     * This method will actually insert a new disk in the indicated column if there's available
-     * space.
-     * <p>If the move is made on behalf of the AI and the indicated column is already full it
-     * will store a new disk into the next available column, starting from 0 if last is full.</p>
-     * @param player on behalf of whom this move is made.
-     * @param columnToInsertInto where to insert a new disk.
-     * @return row number where the disk was stored on the board.<br>
-     */
 
     /**
      * This method will actually insert a new disk in the indicated column if there's available
@@ -574,38 +373,18 @@ public class Board {
      *          <br>{@code null} if on the indicated column there are no free spaces available
      */
     protected Integer storeNewDisk(PLAYERS player, int columnToInsertInto) {
-//        if (mMovesNumber == mNumberOfRows * mNumberOfColumns) {
-//            return false;
-//        }
-
         for (int y = mNumberOfRows - 1; y >= 0 ; y--) {
             if (mDisksOnBoard[y][columnToInsertInto] == IS_FREE) {
                 mDisksOnBoard[y][columnToInsertInto]
                         = (player == PLAYERS.PLAYER ? PLAYER_DISK : AI_DISK);
 
                 mMovesNumber++;
+                checkForWinner();
                 return y;
             }
         }
 
         return null;   // the column is filled with disks
-    }
-
-
-    public boolean haveWinner() {
-        if (mHaveWinner == true) {
-            // TODO: 18-Feb-16 What should we do if we have a winner
-        }
-
-        return true;
-    }
-
-    public boolean haveDraw() {
-        if (mIsDraw == true) {
-            // TODO: 18-Feb-16 What should we do in case of a draw
-        }
-
-        return true;
     }
 
 }
