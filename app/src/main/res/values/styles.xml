@@ -1,11 +1,41 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
     </style>
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
+        <item name="android:background">@color/colorPrimary</item>
+        <item name="android:textColorPrimary">@color/lightBlueText</item>
+    </style>
+
+
+    <style name="AppTheme.AlertDialogStyle" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorAccent">#ffcc00</item>
+        <item name="android:textColorPrimary">#fff</item>
+        <item name="android:radius">30dp</item>
+        <item name="android:shadowRadius">30</item>
+        <item name="android:textSize">30sp</item>
+        <item name="android:textAlignment">center</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:alpha">1</item>
+    </style>
+
+    <style name="AppTheme_Blue_Button" parent="Base.TextAppearance.AppCompat.Button" >
+        <item name="android:textColor">#ffcc00</item>
+        <item name="android:background">@color/colorPrimary</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:shadowColor">@color/lightBlueText</item>
+        <item name="android:shadowRadius">16.0</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:elevation">30dp</item>
+        <item name="android:hapticFeedbackEnabled">true</item>
+    </style>
+
 
 </resources>

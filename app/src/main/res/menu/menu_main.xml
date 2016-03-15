@@ -4,23 +4,41 @@
     <item
         android:id="@+id/mainM_I_newGame"
         android:title="New Game"
-        app:showAsAction="always"
+        app:showAsAction="ifRoom"
         android:orderInCategory="1"/>
 
     <item
+        android:id="@+id/mainM_I_resetScores"
         android:title="Reset Scores"
         app:showAsAction="never"
         android:orderInCategory="101" />
+
     <item
+        android:id="@+id/mainM_I_changeNames"
         android:title="Change Names"
         app:showAsAction="never"
         android:orderInCategory="102" />
 
+    <item
+        android:id="@+id/mainM_I_instantAIMove"
+        android:title="Instant AI Move"
+        android:checkable="true"
+        android:checked="false"
+        app:showAsAction="never"
+        android:orderInCategory="103" />
+
+    <item
+        android:id="@+id/mainM_I_modifyDisksToWin"
+        android:title="Modify no of disks to win"
+        app:showAsAction="never"
+        android:orderInCategory="104" />
 
     <item
         android:id="@+id/mainM_I_settings"
         android:title="Settings"
-        android:enabled="false"
+        android:visible="false"
         app:showAsAction="never"
         android:orderInCategory="2001" />
+
+
 </menu>
